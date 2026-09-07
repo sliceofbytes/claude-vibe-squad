@@ -10,6 +10,14 @@ set -euo pipefail
 ROOT="${1:-/squad}"
 OWNER="${2:-squad:squad}"
 
+# `WORKDIR` creates $ROOT as root and `COPY --chown` only owns what it copies
+# INTO it, so the directory itself stays root-owned. `uv sync` then cannot
+# create $ROOT/.venv, and the runtime user cannot create _state. This one
+# non-recursive chown is the part of the old `chown -R` that was load-bearing
+# (measured: without it the test stage fails at `uv sync --locked` with
+# "failed to create directory `/squad/.venv`: Permission denied").
+chown "$OWNER" "$ROOT"
+
 # `sed -i` renames a temp file into place, so anything it rewrites comes back
 # root-owned. chown only those files: a `chown -R` over the whole tree copies
 # every file in the checkout into a second image layer.
